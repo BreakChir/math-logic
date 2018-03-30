@@ -3,21 +3,23 @@ open Printf
 open Utils
 open Grammar
 
-let lines = read_file "input.txt"
-let assumpS = List.hd lines 
-let exprsS = List.filter emptyPred (List.tl lines)
-let assump = parseAssump assumpS 
-let exprs = List.map (parseExpr) exprsS
-let anns = checkProof exprs assump
-let arrExpr = Array.of_list exprs
-let oc = open_out "output.txt"
-
-let _ = 
-    for i = 0 to Array.length arrExpr - 1 do
-        fprintf oc "%s\n" ("(" ^ string_of_int (i + 1) ^ ") " 
-                ^ string_of_expr arrExpr.(i) ^ " "^ string_of_ann anns.(i))
-    done;
-    close_out oc
-
-
-
+let do_check =
+    let (ic, oc) = (open_in "input.txt", open_out "output.txt") in
+    let assump = parse_assump (input_line ic) in
+    let worker = new checker in
+    let pos = ref 0 in
+    worker#fill_assump assump 1;
+    try
+      while true; do
+        let line = input_line ic in
+        if (line <> "") then begin
+            let expr = parse_expr line in
+            let ann  = worker#check expr !pos in
+            fprintf oc "%s\n" ("(" ^ string_of_int !pos ^ ") " 
+                ^ string_of_expr expr ^ " "^ string_of_ann ann);
+            pos := !pos + 1
+            end
+      done;
+    with End_of_file ->
+      close_in ic;
+      close_out oc;

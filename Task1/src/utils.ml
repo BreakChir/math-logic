@@ -1,11 +1,10 @@
 let (>>) x f = f x
 
-let parseStr parser = (fun s -> s >> Lexing.from_string >> parser Lexer.main)
-let parseAssump assump = parseStr Parser.assump assump
-let parseExpr = parseStr Parser.main
-let emptyPred = fun x -> x <> ""
+let parse_str parser = (fun s -> s >> Lexing.from_string >> parser Lexer.main)
+let parse_assump assump = parse_str Parser.assump assump
+let parse_expr = parse_str Parser.main
 
-let axioms = List.map (parseStr Parser.main)
+let axioms = List.map (parse_str Parser.main)
             ["A->B->A";
              "(A->B)->(A->B->C)->(A->C)";
              "A->B->A&B";
@@ -16,8 +15,12 @@ let axioms = List.map (parseStr Parser.main)
              "(A->C)->(B->C)->(A|B->C)";
              "(A->B)->(A->!B)->!A";
              "!!A->A"]
-             
-let read_file filename = 
+
+(* Doesn't use *)
+
+let not_empty_pred = fun x -> x <> ""
+
+let read_file filename =
  let lines = ref [] in
  let chan = open_in filename in
   try
