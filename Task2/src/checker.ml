@@ -1,12 +1,15 @@
 open Utils
 open Grammar
 open Equaler
+open Printf
 
 module H  = Hashtbl
 
-let checker =
+class checker a oc =
     object(self)
     
+    val oc        = oc
+    val a         = a
     val assump    = (H.create 1024 : (expr, int) H.t)
     val pos_expr  = (H.create 1024 : (int, expr) H.t)
     val mp        = (H.create 1024 : (expr, int * int) H.t)
@@ -62,7 +65,30 @@ let checker =
             if H.mem proved eL then H.replace mp eR (pos + 1, H.find proved eL + 1)
                 else if H.mem impl eL then H.replace impl eL (pos :: H.find impl eL)
                     else H.add impl eL [pos]
-        | _ -> ()            
+        | _ -> ()       
+
+    method deduct e ann =
+        if e = a then
+            fprintf oc "%s\n%s\n%s\n%s\n%s\n"
+            (string_of_expr (a --> (a --> a)))
+            (string_of_expr (a --> ((a --> a) --> a)))
+            (string_of_expr ((a --> (a --> a)) --> ((a --> ((a --> a) --> a)) --> (a --> a))))
+            (string_of_expr ((a --> ((a --> a) --> a)) --> (a --> a)))
+            (string_of_expr (a --> a))
+        else match ann with
+        | Axiom _
+        | Assumption _ ->
+            fprintf oc "%s\n%s\n%s\n"
+            (string_of_expr (e))
+            (string_of_expr (e --> (a --> e)))
+            (string_of_expr (a --> e))
+        | ModusPonens (l, r) ->
+            let ej = H.find pos_expr (r - 1) in
+            fprintf oc "%s\n%s\n%s\n"
+            (string_of_expr ((a --> ej) --> ((a --> (ej --> e)) --> (a --> e))))
+            (string_of_expr ((a --> (ej --> e)) --> (a --> e)))
+            (string_of_expr (a --> e))
+        | NoProof -> ()    
 
     method check e pos =
         let ann = self#get_proof e in 
@@ -70,6 +96,10 @@ let checker =
         self#upd_mp e pos;
         H.replace proved e pos;
         self#set_impl e pos;
-        ann
+        self#deduct e ann
     end
+        
+        
+        
+        
         
