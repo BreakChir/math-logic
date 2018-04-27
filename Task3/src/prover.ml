@@ -1,6 +1,7 @@
 open Grammar
 open Checker
 open Utils
+open Parser
 
 module H  = Hashtbl
 
@@ -51,14 +52,12 @@ class prover assump expr oc =
                    | Not a -> (false, [value])
                    | _ -> (true, [value]))
         | Not a -> let (is_pr, pr) = get_proof' a in
-                   (not is_pr, pr @ (self#get_lemma ("not_" ^ string_of_bool is_pr)
-                   (string_of_expr a) ""))
+                   (not is_pr, pr @ (self#get_lemma ("not_" ^ string_of_bool is_pr) a (Var(""))))
         | Binary (_ as op, a, b) -> 
                     let (is_pr_a, pr_a) = get_proof' a in
                     let (is_pr_b, pr_b) = get_proof' b in
                     (apply_op op is_pr_a is_pr_b,
-                    pr_a @ pr_b @ (self#get_lemma (get_name is_pr_a is_pr_b op)
-                    (string_of_expr a) (string_of_expr b)))
+                    pr_a @ pr_b @ (self#get_lemma (get_name is_pr_a is_pr_b op) a b))
         in
         get_proof' e
 
@@ -68,11 +67,7 @@ class prover assump expr oc =
         let rec read_proof pr pos =
            match pr with
            | [] -> []
-           | x :: xs -> (* Expr -> String -> Expr 
-                        если не пропарсить заново, то высказывания, которые должны быть одинаковыми, будут разными
-                        хз почему, где то криво пишу*)
-                        let exx = parse_ex (string_of_expr x) in
-                        let a = worker#check exx pos in
+           | x :: xs -> let a = worker#check x pos in
                         a @ (read_proof xs (pos + 1))
         in
         read_proof proof' 0
@@ -81,12 +76,12 @@ class prover assump expr oc =
     method get_ans_str variables =
         let rec get_str = function
             | x :: [] -> (match x with
-                            | Not (Var (var)) -> var ^ "=Л"
-                            | Var (var)       -> var ^ "=И"
+                            | Not (Var var) -> var ^ "=Л"
+                            | Var var       -> var ^ "=И"
                             | _ -> "")
             | x :: xs -> (match x with
-                            | Not (Var (var)) -> var ^ "=Л, " ^ (get_str xs)
-                            | Var (var)       -> var ^ "=И, " ^ (get_str xs)
+                            | Not (Var var) -> var ^ "=Л, " ^ (get_str xs)
+                            | Var var       -> var ^ "=И, " ^ (get_str xs)
                             | _ -> "")
             | [] -> ""                
         in
@@ -98,19 +93,19 @@ class prover assump expr oc =
             | [] -> let (is_proved, proof) = self#get_proof in
                    if (not is_proved) then wrong := assump';
                    (proof, is_proved) 
-            | x :: xs -> let assump_false = assump' @ [Not(Var (x))] in
-                         let assump_true = assump' @ [Var (x)] in
-                         H.replace vars x (Not(Var (x)));
+            | x :: xs -> let assump_false = assump' @ [Not(Var x)] in
+                         let assump_true = assump' @ [Var x] in
+                         H.replace vars x (Not(Var x));
                          let (pr1, is_go1) = down assump_false xs in
                          if (not is_go1) then ([], false)
                          else begin
-                         H.replace vars x (Var (x));
+                         H.replace vars x (Var x);
                          let (pr2, is_go2) = down assump_true xs in
                          if (not is_go2) then ([], false)
                          else begin
-                         let d_pr1 = self#deduce assump' pr1 (Not (Var (x))) in                        
-                         let d_pr2 = self#deduce assump' pr2 (Var (x)) in
-                         let merge = self#get_lemma "_excluded" str_e x in
+                         let d_pr1 = self#deduce assump' pr1 (Not (Var x)) in                        
+                         let d_pr2 = self#deduce assump' pr2 (Var x) in
+                         let merge = self#get_lemma "_excluded" e (Var x) in
                          (d_pr1 @ d_pr2 @ merge, true) end end
         in
         let (pr, ok) = down [] (var_list) in

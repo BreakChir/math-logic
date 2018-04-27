@@ -19,9 +19,9 @@ rule main = parse
         | eof           { EOF }
 
 and expr a b = parse
-        | whitespace    { main lexbuf } 
-        | "A"           { VAR(a) }
-        | "B"           { VAR(b) }
+        | whitespace    { expr a b lexbuf } 
+        | "A"           { EXPR(a) }
+        | "B"           { EXPR(b) }
         | "->"          { IMPL }
         | "|="          { DEQ }
         | ","           { COMMA }

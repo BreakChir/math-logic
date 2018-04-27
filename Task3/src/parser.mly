@@ -2,6 +2,7 @@
   open Grammar;;
 %}
 %token <string> VAR
+%token <Grammar.expr> EXPR
 %token IMPL AND OR NOT
 %token OPEN CLOSE
 %token EOF
@@ -25,7 +26,8 @@ main:
         DEQ exp EOF   { ([], $2) }
         |ex DEQ exp EOF   { ($1, $3) }
 exp:
-        VAR              { Var ($1) }            
+        VAR              { Var ($1) }
+        |EXPR            { $1 }
         |OPEN exp CLOSE  { $2 }     
         |NOT exp         { Not ($2) }  
         |exp IMPL exp    { Binary (Impl, $1, $3) }
