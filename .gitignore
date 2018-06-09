@@ -3,4 +3,3 @@
 *.cmo
 *.mli
 *.ml
-!parser.ml
