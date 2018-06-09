@@ -1,0 +1,6 @@
+*.exe
+*.cmi
+*.cmo
+*.mli
+*.ml
+!parser.ml
